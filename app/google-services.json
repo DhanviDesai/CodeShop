@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "81749919790",
+    "firebase_url": "https://codeshop-557a7.firebaseio.com",
+    "project_id": "codeshop-557a7",
+    "storage_bucket": "codeshop-557a7.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:81749919790:android:050f29bb02332fcf7a77bf",
+        "android_client_info": {
+          "package_name": "com.example.codeshop"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "81749919790-chpf834lf49ogtg6f8s002556cv6ue86.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.codeshop",
+            "certificate_hash": "d880965dcaea7a85b03defcc1903db99c44428a4"
+          }
+        },
+        {
+          "client_id": "81749919790-gukodtr88b42r5iicg1tlvmapsb74i3s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjYtT0qyuh5XgZKHSlvp-w3fEWd3hCOME"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "81749919790-gukodtr88b42r5iicg1tlvmapsb74i3s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
