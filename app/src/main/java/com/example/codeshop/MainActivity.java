@@ -10,10 +10,14 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Camera;
+import android.graphics.ImageFormat;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
+import android.hardware.HardwareBuffer;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -21,16 +25,19 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CaptureRequest.Builder;
 import android.hardware.camera2.CameraManager;
 import android.media.Image;
+import android.media.ImageReader;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
 import android.util.Rational;
 import android.util.Size;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -43,6 +50,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -64,6 +72,8 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
 import java.io.IOException;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -82,6 +92,11 @@ public class MainActivity extends AppCompatActivity {
 
     private ArrayList<ProductModel> products;
 
+    private HandlerThread mImageAvailableHandlerThread;
+
+    private Handler mImageAvailableHandler;
+
+    private ImageReader mReader;
 
     private TextureView textureView;
     private FirebaseVisionBarcodeDetectorOptions options;
@@ -109,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-                startCameraFeed();
+                startCameraFeed(width,height);
 
             }
 
@@ -256,83 +271,145 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void startCameraFeed() {
+    public void startCameraFeed(int desiredWidth,int desiredHeight) {
         Handler cameraBackgroundHandler = new Handler();
+        mImageAvailableHandlerThread = new HandlerThread("imageReaderHandlerThread");
+        mImageAvailableHandlerThread.start();
+        mImageAvailableHandler = new Handler(mImageAvailableHandlerThread.getLooper());
         CameraManager cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
         try {
             for (String id : cameraManager.getCameraIdList()) {
                 CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(id);
                 Integer direction = characteristics.get(CameraCharacteristics.LENS_FACING);
-                if (direction!=null && direction == CameraCharacteristics.LENS_FACING_BACK) {
+                if (direction != null && direction == CameraCharacteristics.LENS_FACING_BACK) {
 
                     if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                        // TODO: Consider calling
-                        //    Activity#requestPermissions
-                        // here to request the missing permissions, and then overriding
-                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                        //                                          int[] grantResults)
-                        // to handle the case where the user grants the permission. See the documentation
-                        // for Activity#requestPermissions for more details.
-                        return;
-                    }
-                    cameraManager.openCamera(id, new CameraDevice.StateCallback() {
-                        @Override
-                        public void onOpened(@NonNull CameraDevice camera) {
-                            CameraCaptureSession.StateCallback callback = new CameraCaptureSession.StateCallback() {
-                                @Override
-                                public void onConfigured(@NonNull CameraCaptureSession session) {
-                                    try {
-                                       Builder builder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-                                       builder.addTarget(surfaceView.getHolder().getSurface());
-                                        session.setRepeatingRequest(builder.build(),null,null);
-                                        Toast.makeText(MainActivity.this, "CameraOpened", Toast.LENGTH_SHORT).show();
-                                    } catch (CameraAccessException e) {
-                                        e.printStackTrace();
+                        ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, MY_PERMISSIONS_REQUEST_CAMERA);
+                    } else {
+                        cameraManager.openCamera(id, new CameraDevice.StateCallback() {
+                            @Override
+                            public void onOpened(@NonNull CameraDevice camera) {
+
+
+                                CameraCaptureSession.StateCallback callback = new CameraCaptureSession.StateCallback() {
+                                    @Override
+                                    public void onConfigured(@NonNull CameraCaptureSession session) {
+                                        try {
+                                            Builder builder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                                            builder.addTarget(surfaceView.getHolder().getSurface());
+                                            session.setRepeatingRequest(builder.build(), null, null);
+                                            Toast.makeText(MainActivity.this, "CameraOpened", Toast.LENGTH_SHORT).show();
+                                        } catch (CameraAccessException e) {
+                                            e.printStackTrace();
+                                        }
                                     }
+
+                                    @Override
+                                    public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+
+                                        Log.i("CameraConfiguring", "Failed");
+
+                                    }
+                                };
+
+
+                                FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance().getVisionBarcodeDetector(options);
+
+
+                                mReader = ImageReader.newInstance(desiredWidth, desiredHeight,
+                                        ImageFormat.YUV_420_888, 1);
+
+                                mReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
+                                    // @RequiresApi(api = Build.VERSION_CODES.P)
+                                    @Override
+                                    public void onImageAvailable(ImageReader reader) {
+                                        Toast.makeText(MainActivity.this, "Here", Toast.LENGTH_SHORT).show();
+                                        try {
+                                            Toast.makeText(MainActivity.this, "Here", Toast.LENGTH_SHORT).show();
+
+                                            Image im = reader.acquireNextImage();
+
+                                            Image.Plane[] planes = im.getPlanes();
+
+                                            ByteBuffer buffer = planes[0].getBuffer();
+
+                                            byte[] bytes = new byte[buffer.capacity()];
+
+                                            buffer.get(bytes);
+
+                                            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes,0,bytes.length,null);
+
+                                            Toast.makeText(MainActivity.this, "" + im.toString(), Toast.LENGTH_SHORT).show();
+
+                                            int rotation = getRotationCompensation(id, MainActivity.this, MainActivity.this);
+
+
+                                            FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bitmap);
+
+
+                                            Task<List<FirebaseVisionBarcode>> result = detector.detectInImage(image);
+
+
+                                            result.addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionBarcode>>() {
+                                                @Override
+                                                public void onSuccess(List<FirebaseVisionBarcode> firebaseVisionBarcodes) {
+                                                    Log.i("Here", "Success");
+                                                    Toast.makeText(MainActivity.this, "" + firebaseVisionBarcodes.size(), Toast.LENGTH_SHORT).show();
+                                                }
+                                            }).addOnFailureListener(new OnFailureListener() {
+                                                @Override
+                                                public void onFailure(@NonNull Exception e) {
+                                                    Toast.makeText(MainActivity.this, "Failed", Toast.LENGTH_SHORT).show();
+                                                    e.printStackTrace();
+                                                }
+                                            });
+                                            im.close();
+                                        } catch (CameraAccessException e) {
+                                            Log.i("HereBarcode","Error");
+                                            e.printStackTrace();
+                                        }
+
+                                    }
+                                }, cameraBackgroundHandler);
+
+                                try {
+                                    Surface surface = surfaceView.getHolder().getSurface();
+                                    ArrayList<Surface> surfaces = new ArrayList<>();
+                                    surfaces.add(surface);
+                                    surfaces.add(mReader.getSurface());
+                                    Log.i("Surfaces", "" + surfaces.size());
+                                    camera.createCaptureSession(surfaces, callback, cameraBackgroundHandler);
+                                } catch (CameraAccessException e) {
+                                    Log.i("HereCapture","SessionError");
+                                    e.printStackTrace();
                                 }
 
-                                @Override
-                                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
 
-                                    Log.i("CameraConfiguring","Failed");
-
-                                }
-                            };
-
-                            try {
-                                Surface surface = surfaceView.getHolder().getSurface();
-                                ArrayList<Surface> surfaces = new ArrayList<>();
-                                surfaces.add(surface);
-                                Log.i("Surfaces",""+surfaces.size());
-                                camera.createCaptureSession(surfaces,callback,cameraBackgroundHandler);
-                            } catch (CameraAccessException e) {
-                                e.printStackTrace();
                             }
 
+                            @Override
+                            public void onDisconnected(@NonNull CameraDevice camera) {
 
-                        }
+                                Log.i("CameraOpen", "Disconnected");
 
-                        @Override
-                        public void onDisconnected(@NonNull CameraDevice camera) {
+                            }
 
-                            Log.i("CameraOpen","Disconnected");
+                            @Override
+                            public void onError(@NonNull CameraDevice camera, int error) {
 
-                        }
+                                Log.i("CameraOpen", "Error");
 
-                        @Override
-                        public void onError(@NonNull CameraDevice camera, int error) {
+                            }
+                        }, cameraBackgroundHandler);
 
-                            Log.i("CameraOpen","Error");
-
-                        }
-                    }, cameraBackgroundHandler);
-
-               }
+                    }
+                }
+                }
+            } catch(CameraAccessException e){
+            Log.i("Error","MainError");
+                e.printStackTrace();
             }
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
         }
-    }
 
 /* int j=0;
 
@@ -446,6 +523,60 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+    }
+
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
+
+
+
+    /**
+     * Get the angle by which an image must be rotated given the device's current
+     * orientation.
+     */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private int getRotationCompensation(String cameraId, Activity activity, Context context)
+            throws CameraAccessException {
+        // Get the device's current rotation relative to its "native" orientation.
+        // Then, from the ORIENTATIONS table, look up the angle the image must be
+        // rotated to compensate for the device's rotation.
+        int deviceRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        int rotationCompensation = ORIENTATIONS.get(deviceRotation);
+
+        // On most devices, the sensor orientation is 90 degrees, but for some
+        // devices it is 270 degrees. For devices with a sensor orientation of
+        // 270, rotate the image an additional 180 ((270 + 270) % 360) degrees.
+        CameraManager cameraManager = (CameraManager) context.getSystemService(CAMERA_SERVICE);
+        int sensorOrientation = cameraManager
+                .getCameraCharacteristics(cameraId)
+                .get(CameraCharacteristics.SENSOR_ORIENTATION);
+        rotationCompensation = (rotationCompensation + sensorOrientation + 270) % 360;
+
+        // Return the corresponding FirebaseVisionImageMetadata rotation value.
+        int result;
+        switch (rotationCompensation) {
+            case 0:
+                result = FirebaseVisionImageMetadata.ROTATION_0;
+                break;
+            case 90:
+                result = FirebaseVisionImageMetadata.ROTATION_90;
+                break;
+            case 180:
+                result = FirebaseVisionImageMetadata.ROTATION_180;
+                break;
+            case 270:
+                result = FirebaseVisionImageMetadata.ROTATION_270;
+                break;
+            default:
+                result = FirebaseVisionImageMetadata.ROTATION_0;
+                Log.e(TAG, "Bad rotation value: " + rotationCompensation);
+        }
+        return result;
     }
 
     public void openHistory(View view) {
