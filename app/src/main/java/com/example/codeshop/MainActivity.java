@@ -92,11 +92,11 @@ public class MainActivity extends AppCompatActivity {
 
     private ArrayList<ProductModel> products;
 
-    private HandlerThread mImageAvailableHandlerThread;
-
-    private Handler mImageAvailableHandler;
-
     private ImageReader mReader;
+
+    private HandlerThread mImageAvailbleThread;
+
+    private Handler mImageHandler;
 
     private TextureView textureView;
     private FirebaseVisionBarcodeDetectorOptions options;
@@ -273,9 +273,6 @@ public class MainActivity extends AppCompatActivity {
 
     public void startCameraFeed(int desiredWidth,int desiredHeight) {
         Handler cameraBackgroundHandler = new Handler();
-        mImageAvailableHandlerThread = new HandlerThread("imageReaderHandlerThread");
-        mImageAvailableHandlerThread.start();
-        mImageAvailableHandler = new Handler(mImageAvailableHandlerThread.getLooper());
         CameraManager cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
         try {
             for (String id : cameraManager.getCameraIdList()) {
@@ -291,41 +288,23 @@ public class MainActivity extends AppCompatActivity {
                             public void onOpened(@NonNull CameraDevice camera) {
 
 
-                                CameraCaptureSession.StateCallback callback = new CameraCaptureSession.StateCallback() {
-                                    @Override
-                                    public void onConfigured(@NonNull CameraCaptureSession session) {
-                                        try {
-                                            Builder builder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-                                            builder.addTarget(surfaceView.getHolder().getSurface());
-                                            session.setRepeatingRequest(builder.build(), null, null);
-                                            Toast.makeText(MainActivity.this, "CameraOpened", Toast.LENGTH_SHORT).show();
-                                        } catch (CameraAccessException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
 
-                                    @Override
-                                    public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-
-                                        Log.i("CameraConfiguring", "Failed");
-
-                                    }
-                                };
 
 
                                 FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance().getVisionBarcodeDetector(options);
 
 
+
                                 mReader = ImageReader.newInstance(desiredWidth, desiredHeight,
                                         ImageFormat.YUV_420_888, 1);
 
+
                                 mReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-                                    // @RequiresApi(api = Build.VERSION_CODES.P)
                                     @Override
                                     public void onImageAvailable(ImageReader reader) {
-                                        Toast.makeText(MainActivity.this, "Here", Toast.LENGTH_SHORT).show();
+                                       // Toast.makeText(MainActivity.this, "Here", Toast.LENGTH_SHORT).show();
                                         try {
-                                            Toast.makeText(MainActivity.this, "Here", Toast.LENGTH_SHORT).show();
+                                            //Toast.makeText(MainActivity.this, "Here", Toast.LENGTH_SHORT).show();
 
                                             Image im = reader.acquireNextImage();
 
@@ -339,12 +318,24 @@ public class MainActivity extends AppCompatActivity {
 
                                             Bitmap bitmap = BitmapFactory.decodeByteArray(bytes,0,bytes.length,null);
 
-                                            Toast.makeText(MainActivity.this, "" + im.toString(), Toast.LENGTH_SHORT).show();
+                                            //Toast.makeText(MainActivity.this, "" + im.toString(), Toast.LENGTH_SHORT).show();
 
                                             int rotation = getRotationCompensation(id, MainActivity.this, MainActivity.this);
 
 
-                                            FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bitmap);
+                                            int rotation1 = getJpegOrientation(characteristics,getWindowManager().getDefaultDisplay().getRotation());
+
+                                            Log.i("Rotation",""+rotation1);
+
+                                            FirebaseVisionImageMetadata metadata = new FirebaseVisionImageMetadata.Builder()
+                                                    .setWidth(480)   // 480x360 is typically sufficient for
+                                                    .setHeight(360)  // image recognition
+                                                    .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_YV12)
+                                                    .setRotation(rotation1)
+                                                    .build();
+
+
+                                            FirebaseVisionImage image = FirebaseVisionImage.fromByteArray(bytes,metadata);
 
 
                                             Task<List<FirebaseVisionBarcode>> result = detector.detectInImage(image);
@@ -353,13 +344,17 @@ public class MainActivity extends AppCompatActivity {
                                             result.addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionBarcode>>() {
                                                 @Override
                                                 public void onSuccess(List<FirebaseVisionBarcode> firebaseVisionBarcodes) {
-                                                    Log.i("Here", "Success");
-                                                    Toast.makeText(MainActivity.this, "" + firebaseVisionBarcodes.size(), Toast.LENGTH_SHORT).show();
+                                                    //Log.i("Here", "Success--"+firebaseVisionBarcodes.size());
+                                                    //Toast.makeText(MainActivity.this, "" + firebaseVisionBarcodes.size(), Toast.LENGTH_SHORT).show();
+                                                    for(FirebaseVisionBarcode barcode : firebaseVisionBarcodes){
+                                                        Log.i("Hi",barcode.getDisplayValue());
+                                                        Toast.makeText(MainActivity.this, ""+barcode.getDisplayValue(), Toast.LENGTH_SHORT).show();
+                                                    }
                                                 }
                                             }).addOnFailureListener(new OnFailureListener() {
                                                 @Override
                                                 public void onFailure(@NonNull Exception e) {
-                                                    Toast.makeText(MainActivity.this, "Failed", Toast.LENGTH_SHORT).show();
+                                                  //  Toast.makeText(MainActivity.this, "Failed", Toast.LENGTH_SHORT).show();
                                                     e.printStackTrace();
                                                 }
                                             });
@@ -370,7 +365,33 @@ public class MainActivity extends AppCompatActivity {
                                         }
 
                                     }
+
+
                                 }, cameraBackgroundHandler);
+
+                                CameraCaptureSession.StateCallback callback = new CameraCaptureSession.StateCallback() {
+                                    @Override
+                                    public void onConfigured(@NonNull CameraCaptureSession session) {
+                                        try {
+                                            Builder builder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                                            builder.addTarget(surfaceView.getHolder().getSurface());
+                                            builder.addTarget(mReader.getSurface());
+                                            session.setRepeatingRequest(builder.build(), null, null);
+                                            Toast.makeText(MainActivity.this, "CameraOpened", Toast.LENGTH_SHORT).show();
+                                        } catch (CameraAccessException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+
+                                        Log.i("CameraConfiguring", "Failed");
+
+                                        mReader = ImageReader.newInstance(desiredWidth,desiredHeight,ImageFormat.YUV_420_888,1);
+
+                                    }
+                                };
 
                                 try {
                                     Surface surface = surfaceView.getHolder().getSurface();
@@ -577,6 +598,32 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Bad rotation value: " + rotationCompensation);
         }
         return result;
+    }
+
+    @Override
+    protected void onPause() {
+        Log.e(TAG, "onPause");
+        //closeCamera();
+        //stopBackgroundThread();
+        super.onPause();
+    }
+
+    private int getJpegOrientation(CameraCharacteristics c, int deviceOrientation) {
+        if (deviceOrientation == android.view.OrientationEventListener.ORIENTATION_UNKNOWN) return 0;
+        int sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
+
+        // Round device orientation to a multiple of 90
+        deviceOrientation = (deviceOrientation + 45) / 90 * 90;
+
+        // Reverse device orientation for front-facing cameras
+        boolean facingFront = c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT;
+        if (facingFront) deviceOrientation = -deviceOrientation;
+
+        // Calculate desired JPEG orientation relative to camera orientation to make
+        // the image upright relative to the device orientation
+        int jpegOrientation = (sensorOrientation + deviceOrientation + 270) % 360;
+
+        return jpegOrientation;
     }
 
     public void openHistory(View view) {
