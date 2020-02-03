@@ -1,30 +1,42 @@
 package com.example.codeshop;
 
 //import android.support.v7.app.AppCompatActivity;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Camera;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CaptureRequest.Builder;
 import android.hardware.camera2.CameraManager;
 import android.media.Image;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.util.Rational;
 import android.util.Size;
 import android.util.SparseArray;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -32,15 +44,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.camera2.internal.CameraDeviceStateCallbacks;
-import androidx.camera.core.Camera;
-import androidx.camera.core.CameraSelector;
-import androidx.camera.core.CameraX;
-import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.ImageProxy;
-import androidx.camera.core.Preview;
-import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
@@ -52,7 +55,6 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.vision.barcode.Barcode;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
@@ -84,14 +86,13 @@ public class MainActivity extends AppCompatActivity {
     private TextureView textureView;
     private FirebaseVisionBarcodeDetectorOptions options;
     private boolean isPermissionGranted = false;
-    private  boolean isInternetGranted = false;
+    private boolean isInternetGranted = false;
     private RecyclerView recyclerView;
-    private TextView checkout,instructions;
+    private TextView checkout, instructions;
     private View divider;
     private LinearLayout heading;
-    private PreviewView previewView;
-    private ListenableFuture<ProcessCameraProvider> processCameraProvider;
-    private int i=0;
+    private SurfaceView surfaceView;
+    private int i = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,14 +100,32 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
+        surfaceView = findViewById(R.id.surfaceView);
+        surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+                startCameraFeed();
+
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+
+            }
+        });
         recyclerView = findViewById(R.id.scannedRecycler);
         divider = findViewById(R.id.view);
         checkout = findViewById(R.id.checkout);
         instructions = findViewById(R.id.instructions);
         heading = findViewById(R.id.linearLayout);
-        previewView = findViewById(R.id.previewView);
+        // previewView = findViewById(R.id.previewView);
 
-        processCameraProvider = ProcessCameraProvider.getInstance(this);
+        // processCameraProvider = ProcessCameraProvider.getInstance(this);
 
         products = new ArrayList<>();
 
@@ -128,8 +147,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED) {
             isInternetGranted = true;
-        }else{
-            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.INTERNET},MY_PERMISSIONS_REQUEST_INTERNET);
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, MY_PERMISSIONS_REQUEST_INTERNET);
         }
 
    /*   processCameraProvider.addListener(() -> {
@@ -198,23 +217,22 @@ public class MainActivity extends AppCompatActivity {
         },ContextCompat.getMainExecutor(this));*/
 
 
-   startCameraFeed();
+        //startCameraFeed();
 
 
         toggleVisibility();
-       // setCameraFeed();
+        // setCameraFeed();
 
     }
 
-    private void toggleVisibility(){
-        if(products.size()==0){
+    private void toggleVisibility() {
+        if (products.size() == 0) {
             recyclerView.setVisibility(GONE);
             divider.setVisibility(GONE);
             checkout.setVisibility(GONE);
             heading.setVisibility(GONE);
             instructions.setVisibility(VISIBLE);
-        }
-        else{
+        } else {
             recyclerView.setVisibility(VISIBLE);
             divider.setVisibility(VISIBLE);
             checkout.setVisibility(VISIBLE);
@@ -231,21 +249,83 @@ public class MainActivity extends AppCompatActivity {
                 isPermissionGranted = true;
             }
         }
-        if(requestCode == MY_PERMISSIONS_REQUEST_INTERNET){
-            if(grantResults.length>0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+        if (requestCode == MY_PERMISSIONS_REQUEST_INTERNET) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 isInternetGranted = true;
             }
         }
     }
 
-    public void startCameraFeed(){
+    public void startCameraFeed() {
         Handler cameraBackgroundHandler = new Handler();
-        CameraManager cameraManager =  (CameraManager)this.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
         try {
-            for(String id : cameraManager.getCameraIdList()){
+            for (String id : cameraManager.getCameraIdList()) {
                 CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(id);
-               Integer direction =  characteristics.get(CameraCharacteristics.LENS_FACING);
-               if(direction == CameraCharacteristics.LENS_FACING_BACK){
+                Integer direction = characteristics.get(CameraCharacteristics.LENS_FACING);
+                if (direction!=null && direction == CameraCharacteristics.LENS_FACING_BACK) {
+
+                    if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    Activity#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for Activity#requestPermissions for more details.
+                        return;
+                    }
+                    cameraManager.openCamera(id, new CameraDevice.StateCallback() {
+                        @Override
+                        public void onOpened(@NonNull CameraDevice camera) {
+                            CameraCaptureSession.StateCallback callback = new CameraCaptureSession.StateCallback() {
+                                @Override
+                                public void onConfigured(@NonNull CameraCaptureSession session) {
+                                    try {
+                                       Builder builder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                                       builder.addTarget(surfaceView.getHolder().getSurface());
+                                        session.setRepeatingRequest(builder.build(),null,null);
+                                        Toast.makeText(MainActivity.this, "CameraOpened", Toast.LENGTH_SHORT).show();
+                                    } catch (CameraAccessException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                                @Override
+                                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+
+                                    Log.i("CameraConfiguring","Failed");
+
+                                }
+                            };
+
+                            try {
+                                Surface surface = surfaceView.getHolder().getSurface();
+                                ArrayList<Surface> surfaces = new ArrayList<>();
+                                surfaces.add(surface);
+                                Log.i("Surfaces",""+surfaces.size());
+                                camera.createCaptureSession(surfaces,callback,cameraBackgroundHandler);
+                            } catch (CameraAccessException e) {
+                                e.printStackTrace();
+                            }
+
+
+                        }
+
+                        @Override
+                        public void onDisconnected(@NonNull CameraDevice camera) {
+
+                            Log.i("CameraOpen","Disconnected");
+
+                        }
+
+                        @Override
+                        public void onError(@NonNull CameraDevice camera, int error) {
+
+                            Log.i("CameraOpen","Error");
+
+                        }
+                    }, cameraBackgroundHandler);
 
                }
             }
@@ -254,7 +334,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-/*    public void setCameraFeed() {
+/* int j=0;
+
+   public void setCameraFeed() {
         if (isPermissionGranted) {
             PreviewConfig config = new PreviewConfig.Builder()
                     .setLensFacing(CameraX.LensFacing.BACK)
@@ -269,13 +351,15 @@ public class MainActivity extends AppCompatActivity {
 
             ImageAnalysisConfig config1 = new ImageAnalysisConfig.Builder()
                     .setImageReaderMode(ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE)
+                    .setImageQueueDepth(1)
                     .build();
 
             ImageAnalysis analysis = new ImageAnalysis(config1);
 
-            analysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, new ImageAnalysis.Analyzer() {
+            analysis.setAnalyzer(ContextCompat.getMainExecutor(this), new ImageAnalysis.Analyzer() {
                 @Override
                 public void analyze(ImageProxy image, int rotationDegrees) {
+                    j++;
                     if (image == null || image.getImage() == null) {
                         return;
                     }
@@ -284,38 +368,51 @@ public class MainActivity extends AppCompatActivity {
                     int rotation = degreesToFirebaseRotation(rotationDegrees);
                     FirebaseVisionImage firebaseImage = FirebaseVisionImage.fromMediaImage(im, rotation);
 
-                    FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance().getVisionBarcodeDetector();
+                    FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance().getVisionBarcodeDetector(options);
 
                     Task<List<FirebaseVisionBarcode>> result = detector.detectInImage(firebaseImage)
                             .addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionBarcode>>() {
                                 @Override
                                 public void onSuccess(List<FirebaseVisionBarcode> firebaseVisionBarcodes) {
                                     String displayValue = null;
+                                    if (firebaseVisionBarcodes.size() ==1 ) {
+                                        FirebaseVisionBarcode barcode = firebaseVisionBarcodes.get(0);
+                                        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                                        // Vibrate for 500 milliseconds
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                            v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+                                        } else {
+                                            //deprecated in API 26
+                                            v.vibrate(500);
+                                        }*/
 
-                                    for (FirebaseVisionBarcode barcode : firebaseVisionBarcodes) {
-                                        Rect bounds = barcode.getBoundingBox();
-                                        Point[] corners = barcode.getCornerPoints();
+                                     /*  Rect bounds = barcode.getBoundingBox();
+                                       Point[] corners = barcode.getCornerPoints();
 
                                         String rawValue = barcode.getRawValue();
 
-                                        if (!barcode.getDisplayValue().equals(displayValue)) {
-                                          //  textureView.setVisibility(View.GONE);
-                                            //Toast.makeText(MainActivity.this, displayValue, Toast.LENGTH_SHORT).show();
+                                        Dialog dialog = new Dialog(MainActivity.this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+                                        dialog.setContentView(R.layout.product_dialog);
+                                        dialog.show();
+                                        displayValue = barcode.getDisplayValue();
+                                        Toast.makeText(MainActivity.this, "" + displayValue+"--"+j, Toast.LENGTH_SHORT).show();
 
-                                            displayValue = barcode.getDisplayValue();
-                                            Toast.makeText(MainActivity.this, ""+displayValue, Toast.LENGTH_SHORT).show();
+                                        analysis.removeAnalyzer();
+                                        //  textureView.setVisibility(View.GONE);
+                                        //Toast.makeText(MainActivity.this, displayValue, Toast.LENGTH_SHORT).show();
+
+                                        //Toast.makeText(MainActivity.this, ""+displayValue, Toast.LENGTH_SHORT).show();
 //                                            Intent i = new Intent(MainActivity.this, Cart.class);
 //                                            i.putExtra("value", displayValue);
 //                                            startActivity(i);
-                                            try {
-                                                detector.close();
-                                            } catch (IOException e) {
-                                                e.printStackTrace();
-                                            }
+                                        try {
+                                            detector.close();
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
                                         }
                                     }
-
                                 }
+
                             })
                             .addOnCanceledListener(new OnCanceledListener() {
                                 @Override
@@ -354,4 +451,5 @@ public class MainActivity extends AppCompatActivity {
     public void openHistory(View view) {
 
     }
-}
+
+    }
