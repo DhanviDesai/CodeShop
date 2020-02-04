@@ -75,11 +75,36 @@ public class MainActivity extends AppCompatActivity {
     private TextView checkout,instructions;
     private View divider;
     private LinearLayout heading;
+    private Preview preview;
+    private ImageAnalysis analysis;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        init();
+        toggleVisibility();
+        setCameraFeed();
+
+    }
+
+    private void init(){
+
+        PreviewConfig config = new PreviewConfig.Builder()
+                .setLensFacing(CameraX.LensFacing.BACK)
+                .build();
+
+         preview = new Preview(config);
+
+
+
+        ImageAnalysisConfig config1 = new ImageAnalysisConfig.Builder()
+                .setImageReaderMode(ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE)
+                .build();
+
+         analysis = new ImageAnalysis(config1);
+
 
         textureView = findViewById(R.id.texture_view);
 
@@ -95,16 +120,6 @@ public class MainActivity extends AppCompatActivity {
                 .setBarcodeFormats(FirebaseVisionBarcode.FORMAT_EAN_13, FirebaseVisionBarcode.FORMAT_QR_CODE,
                         FirebaseVisionBarcode.FORMAT_AZTEC, FirebaseVisionBarcode.FORMAT_EAN_8, FirebaseVisionBarcode.TYPE_ISBN)
                 .build();
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            isPermissionGranted = true;
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, MY_PERMISSIONS_REQUEST_CAMERA);
-        }
-
-        toggleVisibility();
-        setCameraFeed();
-
     }
 
     private void toggleVisibility(){
@@ -130,16 +145,13 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == MY_PERMISSIONS_REQUEST_CAMERA) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 isPermissionGranted = true;
+                setCameraFeed();
             }
         }
     }
 
     public void setCameraFeed() {
-        if (isPermissionGranted) {
-            PreviewConfig config = new PreviewConfig.Builder()
-                    .setLensFacing(CameraX.LensFacing.BACK)
-                    .build();
-            Preview preview = new Preview(config);
+        if (ContextCompat.checkSelfPermission(this,Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             preview.setOnPreviewOutputUpdateListener(new Preview.OnPreviewOutputUpdateListener() {
                 @Override
                 public void onUpdated(Preview.PreviewOutput output) {
@@ -147,11 +159,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            ImageAnalysisConfig config1 = new ImageAnalysisConfig.Builder()
-                    .setImageReaderMode(ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE)
-                    .build();
-
-            ImageAnalysis analysis = new ImageAnalysis(config1);
 
             analysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, new ImageAnalysis.Analyzer() {
                 @Override
@@ -172,29 +179,18 @@ public class MainActivity extends AppCompatActivity {
                                 public void onSuccess(List<FirebaseVisionBarcode> firebaseVisionBarcodes) {
                                     String displayValue = null;
 
-                                    for (FirebaseVisionBarcode barcode : firebaseVisionBarcodes) {
-                                        Rect bounds = barcode.getBoundingBox();
-                                        Point[] corners = barcode.getCornerPoints();
-
-                                        String rawValue = barcode.getRawValue();
-
-                                        if (!barcode.getDisplayValue().equals(displayValue)) {
-                                          //  textureView.setVisibility(View.GONE);
-                                            //Toast.makeText(MainActivity.this, displayValue, Toast.LENGTH_SHORT).show();
-
-                                            displayValue = barcode.getDisplayValue();
-                                            Toast.makeText(MainActivity.this, ""+displayValue, Toast.LENGTH_SHORT).show();
-//                                            Intent i = new Intent(MainActivity.this, Cart.class);
-//                                            i.putExtra("value", displayValue);
-//                                            startActivity(i);
-                                            try {
-                                                detector.close();
-                                            } catch (IOException e) {
-                                                e.printStackTrace();
-                                            }
+                                    if(firebaseVisionBarcodes.size()==1){
+                                        FirebaseVisionBarcode barcode = firebaseVisionBarcodes.get(0);
+                                        displayValue = barcode.getDisplayValue();
+                                        Toast.makeText(MainActivity.this, ""+displayValue, Toast.LENGTH_SHORT).show();
+                                        try {
+                                            detector.close();
+                                        } catch (IOException e) {
+                                            Log.e("Firebase","DetectorClose");
+                                            e.printStackTrace();
                                         }
+                                        analysis.removeAnalyzer();
                                     }
-
                                 }
                             })
                             .addOnCanceledListener(new OnCanceledListener() {
@@ -208,9 +204,33 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+            CameraX.unbindAll();
+
             CameraX.bindToLifecycle((LifecycleOwner) this, analysis, preview);
 
+        }else{
+            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CAMERA},MY_PERMISSIONS_REQUEST_CAMERA);
         }
+    }
+
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        CameraX.unbindAll();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        init();
+        setCameraFeed();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CameraX.unbindAll();
     }
 
     private int degreesToFirebaseRotation(int degrees) {
