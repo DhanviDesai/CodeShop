@@ -29,12 +29,12 @@
 
     <TextView
         android:id="@+id/prodName"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:text="Kafka on the shore"
-        android:textSize="20sp"
         android:textColor="@color/blackText"
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
@@ -43,6 +43,7 @@
         app:layout_constraintVertical_bias="0.181" />
 
     <TextView
+        android:id="@+id/prodPrice"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -51,7 +52,7 @@
         android:layout_marginBottom="8dp"
         android:text="Rs. 349"
         android:textColor="@color/lightGreyText"
-        android:textSize="18sp"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.035"

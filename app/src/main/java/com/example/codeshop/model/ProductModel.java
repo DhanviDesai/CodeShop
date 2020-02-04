@@ -7,14 +7,43 @@ public class ProductModel {
     private String prodOfferPrice;
     private String prodDiscountRate;
     private String prodBarcode;
+    private String prodBrand;
+    private String prodDescritpion;
 
-    public ProductModel(String prodName, String prodPrice, String prodImageLink, String prodOfferPrice, String prodDiscountRate, String prodBarcode) {
+    public void setProdName(String prodName) {
         this.prodName = prodName;
+    }
+
+    public void setProdPrice(String prodPrice) {
         this.prodPrice = prodPrice;
+    }
+
+    public void setProdImageLink(String prodImageLink) {
         this.prodImageLink = prodImageLink;
+    }
+
+    public void setProdOfferPrice(String prodOfferPrice) {
         this.prodOfferPrice = prodOfferPrice;
+    }
+
+    public void setProdDiscountRate(String prodDiscountRate) {
         this.prodDiscountRate = prodDiscountRate;
+    }
+
+    public void setProdBarcode(String prodBarcode) {
         this.prodBarcode = prodBarcode;
+    }
+
+    public void setProdBrand(String prodBrand) {
+        this.prodBrand = prodBrand;
+    }
+
+    public void setProdDescritpion(String prodDescritpion) {
+        this.prodDescritpion = prodDescritpion;
+    }
+
+    public String getProdBrand() {
+        return prodBrand;
     }
 
     public String getProdBarcode() {
