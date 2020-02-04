@@ -283,6 +283,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     String code = response.getString("code");
                     if(code.equals("OK")){
+                        //Check for total and offset
                         int offset = response.getInt("offset");
                         int total = response.getInt("total");
                         JSONArray items = response.getJSONArray("items");
