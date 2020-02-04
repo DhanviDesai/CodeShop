@@ -51,7 +51,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:text="Rs. 349"
-        android:textColor="@color/lightGreyText"
+        android:textColor="@color/colorPrimary"
         android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
