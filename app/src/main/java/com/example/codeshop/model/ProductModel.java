@@ -9,6 +9,15 @@ public class ProductModel {
     private String prodBarcode;
     private String prodBrand;
     private String prodDescritpion;
+    private int quantity;
+
+    public ProductModel(){
+        this.quantity = 1;
+    }
+
+    public int getQuantity(){
+        return this.quantity;
+    }
 
     public void setProdName(String prodName) {
         this.prodName = prodName;
@@ -28,6 +37,18 @@ public class ProductModel {
 
     public void setProdDiscountRate(String prodDiscountRate) {
         this.prodDiscountRate = prodDiscountRate;
+    }
+
+    public int increaseQuantity(){
+        this.quantity ++;
+        return this.quantity;
+    }
+
+    public int decreaseQuantity(){
+        if(this.quantity !=1){
+            this.quantity--;
+        }
+        return this.quantity;
     }
 
     public void setProdBarcode(String prodBarcode) {

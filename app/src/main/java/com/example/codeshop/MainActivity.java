@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static final int MY_PERMISSIONS_REQUEST_CAMERA = 11111;
 
-    private ArrayList<ProductModel> products;
+    public static ArrayList<ProductModel> products;
 
 
     private TextureView textureView;
@@ -109,6 +109,14 @@ public class MainActivity extends AppCompatActivity {
         setCameraFeed();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
+
+        checkout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(MainActivity.this,CheckOutActivity.class);
+                startActivity(i);
+            }
+        });
     }
 
     private void init(){
@@ -144,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
                         FirebaseVisionBarcode.FORMAT_AZTEC, FirebaseVisionBarcode.FORMAT_EAN_8, FirebaseVisionBarcode.TYPE_ISBN)
                 .build();
         adapter = new ProductAdapter(this,products);
+
     }
 
     private void toggleVisibility(){
@@ -310,12 +319,12 @@ public class MainActivity extends AppCompatActivity {
 //                            dialog.setContentView(promptsView);
 //                            dialog.getWindow().setGravity(Gravity.CENTER);
 //                            dialog.show();
+                                Toast.makeText(MainActivity.this, "Got the data", Toast.LENGTH_SHORT).show();
+                                analysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, analyzer);
                             }
                             recyclerView.setAdapter(adapter);
                             Log.i("Products--", "" + products.size());
                             toggleVisibility();
-                            Toast.makeText(MainActivity.this, "Got the data", Toast.LENGTH_SHORT).show();
-                            analysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, analyzer);
                         }else{
                             Toast.makeText(MainActivity.this, "Valid Code, but no data found", Toast.LENGTH_SHORT).show();
                             analysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, analyzer);

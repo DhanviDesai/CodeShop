@@ -38,6 +38,19 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
         holder.title.setText(products.get(position).getProdName());
         holder.price.setText("\u20b9"+products.get(position).getProdPrice());
         Picasso.get().load(products.get(position).getProdImageLink()).into(holder.imageView);
+        holder.quantity.setText(String.valueOf(products.get(position).getQuantity()));
+        holder.add.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                holder.quantity.setText(String.valueOf(products.get(position).increaseQuantity()));
+            }
+        });
+        holder.subtract.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                holder.quantity.setText(String.valueOf(products.get(position).decreaseQuantity()));
+            }
+        });
 
     }
 
@@ -51,12 +64,17 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
         public ImageView imageView;
         public TextView title;
         public TextView price;
+        public TextView quantity;
+        public ImageView add,subtract;
 
         public ProductViewHolder(@NonNull View itemView) {
             super(itemView);
             imageView = itemView.findViewById(R.id.productImage);
             title = itemView.findViewById(R.id.prodName);
             price = itemView.findViewById(R.id.prodPrice);
+            quantity = itemView.findViewById(R.id.quantity);
+            add = itemView.findViewById(R.id.add);
+            subtract = itemView.findViewById(R.id.subtract);
 
         }
     }
