@@ -282,26 +282,27 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(JSONObject response) {
                 try {
                     String code = response.getString("code");
-                    if(code.equals("OK")){
+                    if(code.equals("OK")) {
                         //Check for total and offset
                         int offset = response.getInt("offset");
                         int total = response.getInt("total");
-                        JSONArray items = response.getJSONArray("items");
-                        for(int i=offset;i<total;i++){
-                            JSONObject currentObject = items.getJSONObject(i);
-                            String title = currentObject.getString("title");
-                            String description = currentObject.getString("description");
-                            String brand = currentObject.getString("brand");
-                            int price = currentObject.getInt("lowest_recorded_price");
-                            JSONArray images = currentObject.getJSONArray("images");
-                            String imageLink = images.getString(0);
-                            ProductModel productModel = new ProductModel();
-                            productModel.setProdName(title);
-                            productModel.setProdDescritpion(description);
-                            productModel.setProdBrand(brand);
-                            productModel.setProdImageLink(imageLink);
-                            productModel.setProdPrice(String.valueOf(price));
-                            products.add(productModel);
+                        if (total > 0) {
+                            JSONArray items = response.getJSONArray("items");
+                            for (int i = offset; i < total; i++) {
+                                JSONObject currentObject = items.getJSONObject(i);
+                                String title = currentObject.getString("title");
+                                String description = currentObject.getString("description");
+                                String brand = currentObject.getString("brand");
+                                int price = currentObject.getInt("lowest_recorded_price");
+                                JSONArray images = currentObject.getJSONArray("images");
+                                String imageLink = images.getString(0);
+                                ProductModel productModel = new ProductModel();
+                                productModel.setProdName(title);
+                                productModel.setProdDescritpion(description);
+                                productModel.setProdBrand(brand);
+                                productModel.setProdImageLink(imageLink);
+                                productModel.setProdPrice(String.valueOf(price));
+                                products.add(productModel);
 //                            Dialog dialog = new Dialog(MainActivity.this);
 //                            LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
 //                            View promptsView = inflater.inflate(R.layout.product_dialog,null);
@@ -309,14 +310,19 @@ public class MainActivity extends AppCompatActivity {
 //                            dialog.setContentView(promptsView);
 //                            dialog.getWindow().setGravity(Gravity.CENTER);
 //                            dialog.show();
+                            }
+                            recyclerView.setAdapter(adapter);
+                            Log.i("Products--", "" + products.size());
+                            toggleVisibility();
+                            Toast.makeText(MainActivity.this, "Got the data", Toast.LENGTH_SHORT).show();
+                            analysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, analyzer);
+                        }else{
+                            Toast.makeText(MainActivity.this, "Valid Code, but no data found", Toast.LENGTH_SHORT).show();
+                            analysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, analyzer);
                         }
-                        recyclerView.setAdapter(adapter);
-                        Log.i("Products--",""+products.size());
-                        toggleVisibility();
-                        Toast.makeText(MainActivity.this, "Got the data", Toast.LENGTH_SHORT).show();
-                        analysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR,analyzer);
                     }else{
                         Toast.makeText(MainActivity.this, "Invalid Code,Try Again", Toast.LENGTH_SHORT).show();
+                        analysis.setAnalyzer(AsyncTask.THREAD_POOL_EXECUTOR, analyzer);
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
