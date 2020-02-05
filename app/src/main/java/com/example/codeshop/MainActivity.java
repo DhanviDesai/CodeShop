@@ -94,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageAnalysis analysis;
     private RequestQueue mRequestQueue;
     private ProductAdapter adapter;
+    private boolean isPresent = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -205,7 +206,18 @@ public class MainActivity extends AppCompatActivity {
                             displayValue = barcode.getDisplayValue();
                             String rawValue = barcode.getRawValue();
                             Toast.makeText(MainActivity.this, ""+rawValue, Toast.LENGTH_SHORT).show();
-                            setUpData(rawValue);
+                            if(products.size()>0){
+                                for(ProductModel product: products){
+                                    if(rawValue.equals(product.getProdBarcode())){
+                                        isPresent = true;
+                                    }
+                                }
+                            }
+                            if(!isPresent) {
+                                setUpData(rawValue);
+                            }else{
+                                Toast.makeText(MainActivity.this, "Product already added, increase quantity for more", Toast.LENGTH_SHORT).show();
+                            }
 
                             try {
                                 detector.close();
@@ -348,6 +360,8 @@ public class MainActivity extends AppCompatActivity {
         mRequestQueue.add(request);
     }
     public void openHistory(View view) {
+        Intent i = new Intent(this,HistoryActivity.class);
+        startActivity(i);
 
     }
 }
