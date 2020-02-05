@@ -36,6 +36,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         android:elevation="4dp"
+        android:background="@drawable/gradient_bg"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0">
@@ -43,14 +44,12 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/background">
+            android:layout_height="match_parent">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_margin="16dp"
                 android:layout_weight="5"
                 android:fontFamily="@font/source_sans_pro_semibold"
                 android:gravity="start"
@@ -118,7 +117,7 @@
                 android:id="@+id/linearLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/colorPrimary"
+                android:background="@drawable/gradient_bg"
                 android:orientation="horizontal"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -173,7 +172,7 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="24dp"
                 android:layout_marginBottom="16dp"
-                android:background="@drawable/bg"
+                android:background="@drawable/gradient_bg"
                 android:gravity="center"
                 android:fontFamily="@font/source_sans_pro"
                 android:padding="8dp"

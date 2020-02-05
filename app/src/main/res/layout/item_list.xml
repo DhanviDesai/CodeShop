@@ -54,7 +54,7 @@
         android:layout_marginBottom="8dp"
         android:text="Rs. 349"
         android:fontFamily="@font/source_sans_pro"
-        android:textColor="#FBA0A0"
+        android:textColor="@color/colorAccent"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

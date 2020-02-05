@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#FBDDA0</color>
-    <color name="colorPrimaryDark">#DCC18C</color>
+    <color name="colorPrimary">#73EEEC</color>
+    <color name="colorPrimaryDark">#7ED6DD</color>
     <color name="colorAccent">#D81B60</color>
     <color name="white">#FFFFFF</color>
     <color name="blackText">#242B36</color>
@@ -9,4 +9,6 @@
     <color name="dangerRed">#F21111</color>
     <color name="lightBorder">#D6DDE8</color>
     <color name="background">#F0F0F7</color>
+    <color name="leftGradient">#7ED6DD</color>
+    <color name="rightGradient">#73EEEC</color>
 </resources>
