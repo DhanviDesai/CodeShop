@@ -52,6 +52,14 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
             }
         });
 
+        holder.delete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                products.remove(position);
+                notifyDataSetChanged();
+            }
+        });
+
     }
 
     @Override
@@ -65,7 +73,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
         public TextView title;
         public TextView price;
         public TextView quantity;
-        public ImageView add,subtract;
+        public ImageView add,subtract,delete;
 
         public ProductViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -75,6 +83,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
             quantity = itemView.findViewById(R.id.quantity);
             add = itemView.findViewById(R.id.add);
             subtract = itemView.findViewById(R.id.subtract);
+            delete = itemView.findViewById(R.id.deleteItem);
 
         }
     }
