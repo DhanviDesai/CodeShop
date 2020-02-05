@@ -44,18 +44,19 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#0f000000">
+            android:background="@color/background">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="18sp"
-                android:gravity="start"
-                android:textColor="@color/blackText"
                 android:layout_gravity="center"
                 android:layout_margin="16dp"
                 android:layout_weight="5"
-                android:text="CodeShop"/>
+                android:fontFamily="@font/source_sans_pro_semibold"
+                android:gravity="start"
+                android:text="CodeShop"
+                android:textColor="@color/blackText"
+                android:textSize="18sp" />
 
             <ImageView
                 android:layout_width="wrap_content"
@@ -110,15 +111,14 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
+            android:background="@color/background"
             android:layout_height="match_parent">
 
             <LinearLayout
                 android:id="@+id/linearLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="8dp"
+                android:background="@color/colorPrimary"
                 android:orientation="horizontal"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -136,6 +136,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
+                    android:fontFamily="@font/source_sans_pro"
                     android:text="My Cart"
                     android:textColor="@color/blackText"
                     android:textSize="18sp" />
@@ -174,9 +175,10 @@
                 android:layout_marginBottom="16dp"
                 android:background="@drawable/bg"
                 android:gravity="center"
+                android:fontFamily="@font/source_sans_pro"
                 android:padding="8dp"
                 android:text="Check out"
-                android:textColor="@color/white"
+                android:textColor="@color/blackText"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -194,8 +196,9 @@
                 android:layout_marginTop="8dp"
                 android:layout_marginEnd="8dp"
                 android:layout_marginBottom="8dp"
+                android:fontFamily="@font/source_sans_pro"
                 android:text="Scan products to add them in your cart"
-                android:textColor="@color/lightGreyText"
+                android:textColor="@color/blackText"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"

@@ -24,6 +24,8 @@ import android.view.LayoutInflater;
 import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -156,21 +158,75 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
     private void toggleVisibility(){
-        if(products.size()==0){
-            recyclerView.setVisibility(GONE);
-            divider.setVisibility(GONE);
-            checkout.setVisibility(GONE);
-            heading.setVisibility(GONE);
-            instructions.setVisibility(VISIBLE);
+        if(products.isEmpty()){
+        recyclerView.animate().alpha(0.0f).setDuration(300).withEndAction(new Runnable() {
+            @Override
+            public void run() {
+
+                recyclerView.setVisibility(GONE);
+            }
+        });
+        divider.animate().alpha(0.0f).setDuration(300).withEndAction(new Runnable() {
+            @Override
+            public void run() {
+                divider.setVisibility(GONE);
+            }
+        });
+        checkout.animate().alpha(0.0f).setDuration(300).withEndAction(new Runnable() {
+            @Override
+            public void run() {
+                checkout.setVisibility(GONE);
+            }
+        });
+        heading.animate().alpha(0.0f).setDuration(300).withEndAction(new Runnable() {
+            @Override
+            public void run() {
+                heading.setVisibility(GONE);
+            }
+        });
+        instructions.animate().alpha(1.0f).setDuration(300).withEndAction(new Runnable() {
+            @Override
+            public void run() {
+                instructions.setVisibility(VISIBLE);
+            }
+        });
         }
         else{
-            recyclerView.setVisibility(VISIBLE);
-            divider.setVisibility(VISIBLE);
-            checkout.setVisibility(VISIBLE);
-            heading.setVisibility(VISIBLE);
-            instructions.setVisibility(GONE);
+            recyclerView.animate().alpha(1.0f).setDuration(300).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+
+                    recyclerView.setVisibility(VISIBLE);
+                }
+            });
+            divider.animate().alpha(1.0f).setDuration(300).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    divider.setVisibility(VISIBLE);
+                }
+            });
+            checkout.animate().alpha(1.0f).setDuration(300).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    checkout.setVisibility(VISIBLE);
+                }
+            });
+            heading.animate().alpha(1.0f).setDuration(300).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    heading.setVisibility(VISIBLE);
+                }
+            });
+            instructions.animate().alpha(0.0f).setDuration(300).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    instructions.setVisibility(GONE);
+                }
+            });
         }
+
     }
 
     @Override
